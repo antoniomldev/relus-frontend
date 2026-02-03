@@ -21,3 +21,11 @@ export interface Profile {
     photo: string 
     district: string //idealmente pode ser um novo tipo se quiser
 }
+
+export interface Workshop { 
+  id: string,
+  title: string,
+  description?: string,
+  hour: string,
+  location: string 
+}

@@ -4,6 +4,7 @@ export const routes = [
     { id: 2, path: '/dashboard/participantes', name: 'Participantes', icon: 'group' },
     { id: 3, path: '/dashboard/acomodacoes', name: 'Acomodações', icon: 'bed' },
     { id: 4, path: '/dashboard/checkin', name: 'Checkin', icon: 'qr_code_scanner' },
+    { id: 5, path: '/dashboard/workshops', name: 'Workshops & Palestras', icon: 'school' },
 ]
 
 

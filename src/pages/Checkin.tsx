@@ -9,7 +9,7 @@ export default function CheckIn() {
     // Exemplo de estado para controlar o Toast de sucesso
     const [showToast, setShowToast] = useState(false);
     const [result, setResult] = useState<any>(null);
-    const [profile, setProfile] = useState<Profile>();
+    const [profile, setProfile] = useState<Profile | undefined>(undefined);
 
     function getProfileInfos() {
         // Lógica para buscar as informações do participante com base no resultado do scanner
@@ -51,25 +51,11 @@ export default function CheckIn() {
                     
                         </div>
                     </div>
-
-                    <ParticipantCard participant={profile} onHandleConfirm={function (): void {
+                    {
+                        result &&  <ParticipantCard participant={profile} onHandleConfirm={function (): void {
                         throw new Error('Function not implemented.');
                     } } />
-                    {/* Quick Stats Footer */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-[#f0f2f4] dark:border-slate-800 pt-8">
-                        <StatBox label="Total Attendance" value="1,240" subvalue="/ 1,500" />
-                        <div className="flex flex-col p-4 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-[#f0f2f4] dark:border-slate-800">
-                            <p className="text-[#637588] dark:text-slate-400 text-xs font-bold uppercase tracking-widest">Recent Activity</p>
-                            <p className="text-2xl font-black text-primary mt-1">12 <span className="text-sm font-normal text-[#637588] dark:text-slate-400">last 5 min</span></p>
-                        </div>
-                        <div className="flex flex-col p-4 bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-[#f0f2f4] dark:border-slate-800">
-                            <p className="text-[#637588] dark:text-slate-400 text-xs font-bold uppercase tracking-widest">Capacity</p>
-                            <div className="w-full bg-[#f0f2f4] dark:bg-slate-800 h-2 rounded-full mt-3">
-                                <div className="bg-primary h-2 rounded-full" style={{ width: '82%' }}></div>
-                            </div>
-                            <p className="text-xs text-right mt-1 text-[#637588] dark:text-slate-400">82% Full</p>
-                        </div>
-                    </div>
+                    }                    
                 </div>
             </main>
 

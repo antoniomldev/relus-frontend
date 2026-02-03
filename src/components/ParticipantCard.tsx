@@ -1,7 +1,7 @@
 import type { Profile } from "../types/types"
 
 interface ParticipantCardProps { 
-    participant: Profile
+    participant: Profile | undefined
     onHandleConfirm: () => void
 }
 
@@ -16,7 +16,7 @@ export default function ParticipantCard({ participant, onHandleConfirm }: Partic
                             <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
                             <p className="text-[#637588] dark:text-slate-400 text-sm font-medium uppercase tracking-wider">Awaiting Check-in</p>
                         </div>
-                        <p className="text-[#111418] dark:text-white text-3xl font-bold leading-tight">{participant.name}</p>
+                        <p className="text-[#111418] dark:text-white text-3xl font-bold leading-tight">{participant?.name}</p>
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -29,7 +29,7 @@ export default function ParticipantCard({ participant, onHandleConfirm }: Partic
                 </div>
                 <div
                     className="hidden sm:block w-48 bg-center bg-no-repeat aspect-square bg-cover rounded-xl shadow-inner border border-[#f0f2f4] dark:border-slate-800"
-                    style={{ backgroundImage: `url("${participant.photo}")` }}
+                    style={{ backgroundImage: `url("${participant?.photo}")` }}
                 ></div>
             </div>
         </div>

@@ -6,11 +6,3 @@ export const routes = [
     { id: 4, path: '/dashboard/checkin', name: 'Checkin', icon: 'qr_code_scanner' },
     { id: 5, path: '/dashboard/workshops', name: 'Workshops & Palestras', icon: 'school' },
 ]
-
-
-
-export function getRouteName(): string | null {
-    const urlPath = `/${window.location.pathname.split('/').slice(1, 3).join('/')}`;
-    const route = routes.find(r => r.path === urlPath);
-    return route?.name ?? null;
-}

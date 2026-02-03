@@ -2,11 +2,12 @@ import { createBrowserRouter } from "react-router";
 import ParticipantProfile from "../pages/ParticipantProfile";
 import Accommodations from "../pages/Accommodations";
 import LayoutBase from "../layout/LayoutBase";
+import CheckIn from "../pages/Checkin";
 
 export const router = createBrowserRouter([
   {
     path: "/perfil",
-    element: <ParticipantProfile />,
+    element: <ParticipantProfile />,   
   },
   {
     path: "/dashboard",
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
         path: "acomodacoes",
         element: <Accommodations />,
       },
+      {
+        path: "checkin",
+        element: <CheckIn />
+      }
     ],
   },
 ]);

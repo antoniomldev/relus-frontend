@@ -1,7 +1,9 @@
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { routes } from "../routes/routes";
 
 export default function Sidebar() {
+
+    const { pathname } = useLocation();
 
     return (
         <>
@@ -16,27 +18,29 @@ export default function Sidebar() {
                 </div>
 
                 <nav className="flex-1 px-4 space-y-1">
-                    {routes.map((item) => (
-                        <NavLink
-                            key={item.id}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg ${isActive
-                                    ? "bg-primary/10 text-primary"
-                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                }`
-                            }
-                        >
-                            <span
-                                className={`material-symbols-outlined`}
-                            >
-                                {item.icon}
-                            </span>
-                            {item.name}
-                        </NavLink>
-                    ))}
-                </nav>
+                    {routes.map((item) => {
+                        const isActive = pathname === item.path;
 
+                        return (
+                            <NavLink
+                                key={item.id}
+                                to={item.path}
+                                className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg ${isActive
+                                        ? "bg-primary/10 text-primary"
+                                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    }`}
+                            >
+                                <span
+                                    className={`material-symbols-outlined ${isActive ? "material-fill" : ""
+                                        }`}
+                                >
+                                    {item.icon}
+                                </span>
+                                {item.name}
+                            </NavLink>
+                        );
+                    })}
+                </nav>
                 <div className="p-4 border-t border-gray-200 dark:border-gray-800">
                     <div className="mt-4 flex items-center gap-3 px-3">
                         <div

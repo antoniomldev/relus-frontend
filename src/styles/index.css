@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: #197fe6;
+  --color-background-light: #f6f7f8;
+  --color-background-dark: #111921;
+
+  /* Font family */
+  --font-display: "Inter", sans-serif;
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 9999px;
+}
+
+/* Dark mode via class */
+.dark {
+  color-scheme: dark;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}

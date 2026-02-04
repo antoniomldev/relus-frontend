@@ -1,15 +1,79 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useState } from "react";
-import type { Profile } from "../types/types";
+import { api } from "../services/api";
+import type { Profile, ProfileQRCode, UserWithProfile } from "../types/types";
+
+interface DisplayProfile {
+  id: string;
+  name: string;
+  instagram: string;
+  district: string;
+  photo: string;
+  teamName: string;
+  teamHexColor: string;
+  roomName: string;
+  roomKeyOwner: string;
+  qrCodeContent: string;
+}
 
 export default function ParticipantProfile() {
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const [profile, setProfile] = useState<DisplayProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Lógica para buscar do usuário, qualquer dúvida favor chamar seu bff
-        // Use os estados para armezenar os campos
-    },[])
+        async function fetchProfile() {
+            try {
+                setLoading(true);
+                // Fetch current user with profile
+                const userData = await api.get<UserWithProfile>('/users/me');
+                
+                if (!userData.profile) {
+                    setError('Profile not found');
+                    return;
+                }
+
+                // Fetch QR code for the profile
+                const qrCode = await api.get<ProfileQRCode>(`/profiles/${userData.profile.id}/qr-code`);
+
+                // Map to display format
+                setProfile({
+                    id: String(userData.profile.id),
+                    name: userData.profile.name,
+                    instagram: userData.profile.instagram || '',
+                    district: userData.profile.district,
+                    photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.profile.name)}&background=random`,
+                    teamName: 'Team', // TODO: Get from role or team service
+                    teamHexColor: '#fbbf24',
+                    roomName: userData.profile.lodge_id ? `Room ${userData.profile.lodge_id}` : 'Sem quarto',
+                    roomKeyOwner: 'Sem proprietário', // TODO: Get from lodge service
+                    qrCodeContent: qrCode.qr_code_url
+                });
+            } catch {
+                setError('Failed to load profile');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchProfile();
+    }, [])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen w-full bg-background-light dark:bg-background-dark flex items-center justify-center">
+                <div className="text-[#111418] dark:text-white">Carregando...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen w-full bg-background-light dark:bg-background-dark flex items-center justify-center">
+                <div className="text-red-600 dark:text-red-400">{error}</div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -60,7 +124,7 @@ export default function ParticipantProfile() {
                             <div className="flex flex-col items-center bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dce0e5] dark:border-[#2a343f] shadow-sm mx-4">
                                 <h4 className="text-[#637588] dark:text-gray-400 text-sm font-bold leading-normal tracking-[0.015em] mb-4">Check-in QR Code</h4>
                                 <div className="p-3 bg-white rounded-lg border border-gray-100">
-                                    <QRCodeCanvas value="https://reactjs.org/" />
+                                    <QRCodeCanvas value={profile?.qrCodeContent || ''} size={200} />
                                 </div>
                                 <p className="mt-4 text-xs text-[#637588] dark:text-gray-400 font-medium">Escaneie para acessar</p>
                             </div>

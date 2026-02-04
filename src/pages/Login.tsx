@@ -20,7 +20,6 @@ export default function LoginPage() {
     try {
       const loginData: Login = { email, password };
       const token: Token = await api.post('/auth/token', loginData);
-      console.log(token);
       login(token);
       navigate('/dashboard/workshops');
     } catch (err) {

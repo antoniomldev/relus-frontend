@@ -1,14 +1,61 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import WorkshopCard from '../components/WorkshopCard';
-import type { Workshop } from '../types/types';
+import { api } from '../services/api';
+import type { Lecture, Workshop } from '../types/types';
 
-export default function Workshops(){
+function lectureToWorkshop(lecture: Lecture): Workshop {
+  const startDate = new Date(lecture.start_date);
+  const endDate = new Date(lecture.end_date);
+  const hour = `${startDate.toLocaleDateString()} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   
-    const [ workshop, setWorkshops] = useState<Workshop[] | null>(null);
+  return {
+    id: String(lecture.id),
+    title: lecture.name,
+    description: lecture.is_workshop ? 'Workshop' : 'Palestra',
+    hour: hour,
+    location: `Evento ${lecture.event_id}`
+  };
+}
 
-    useEffect(() => {
-        // lógica para buscar os dados 
-    }, [])
+export default function Workshops() {
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLectures() {
+      try {
+        setLoading(true);
+        const lectures = await api.get<Lecture[]>('/lectures', {
+          params: { offset: 0, limit: 100 }
+        });
+        const mappedWorkshops = lectures.map(lectureToWorkshop);
+        setWorkshops(mappedWorkshops);
+      } catch {
+        setError('Failed to load workshops');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLectures();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-background-light dark:bg-background-dark items-center justify-center">
+        <div className="text-[#111418] dark:text-white">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen bg-background-light dark:bg-background-dark items-center justify-center">
+        <div className="text-red-600 dark:text-red-400">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-white">
@@ -22,7 +69,7 @@ export default function Workshops(){
         </header>
         <section className="p-8 pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workshop?.map((workshop) => (
+            {workshops.map((workshop) => (
               <WorkshopCard key={workshop.id} {...workshop} />
             ))}
           </div>
@@ -30,4 +77,4 @@ export default function Workshops(){
       </main>
     </div>
   );
-};
+}

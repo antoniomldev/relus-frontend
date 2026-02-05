@@ -1,9 +1,33 @@
 // Lodge/Room Types
 export interface Lodge {
   id: number;
+  name: string | null;
   max_capacity: number;
   lodge_type_id: number;
-  key_owner: number;
+  key_owner: number | null;
+}
+
+export interface LodgeWithOccupation {
+  id: number;
+  name: string | null;
+  max_capacity: number;
+  lodge_type_id: number;
+  key_owner: number | null;
+  occupation: number;
+  key_owner_name: string | null;
+  lodge_type_name: string | null;
+}
+
+export interface LodgeDetail {
+  id: number;
+  name: string | null;
+  max_capacity: number;
+  lodge_type_id: number;
+  lodge_type_name: string | null;
+  key_owner: number | null;
+  key_owner_name: string | null;
+  occupation: number;
+  participants: Profile[];
 }
 
 export interface LodgeType {
@@ -12,7 +36,7 @@ export interface LodgeType {
 }
 
 // Room Status Type (for frontend display)
-export type RoomStatus = 'Disponível' | 'Cheio' | 'Disponível' | 'Cheio';
+export type RoomStatus = 'Disponível' | 'Cheio';
 
 export interface Room {
   id: string;

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import LoginPage from '../pages/Login';
 import ParticipantProfile from '../pages/ParticipantProfile';
+import PublicProfile from '../pages/PublicProfile';
 import Accommodations from '../pages/Accommodations';
 import LayoutBase from '../layout/LayoutBase';
 import CheckIn from '../pages/Checkin';
@@ -24,6 +25,10 @@ function AdminRoute() {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: '/p/:slug',
+    element: <PublicProfile />,
+  },
   {
     element: <PublicRoute />,
     children: [

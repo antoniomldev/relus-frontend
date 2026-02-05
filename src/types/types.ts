@@ -51,6 +51,7 @@ export interface Room {
 export interface Profile {
   id: number;
   name: string;
+  slug: string;
   age: number;
   district: string;
   instagram: string | null;

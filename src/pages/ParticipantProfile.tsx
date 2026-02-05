@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../services/api";
-import type { ProfileQRCode, UserWithProfile } from "../types/types";
+import type { LodgeDetail, Profile, ProfileQRCode, UserWithProfile } from "../types/types";
 
 interface DisplayProfile {
   id: string;
@@ -13,13 +13,10 @@ interface DisplayProfile {
   photo: string;
   teamName: string;
   teamHexColor: string;
-  nextTeamName: string | null;
-  nextTeamHexColor: string | null;
   roomName: string;
   roomKeyOwner: string;
   qrCodeContent: string;
   isPaid: boolean;
-  typeSubscription: string | null;
 }
 
 export default function ParticipantProfile() {
@@ -28,6 +25,9 @@ export default function ParticipantProfile() {
     const [profile, setProfile] = useState<DisplayProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [instagramInput, setInstagramInput] = useState('');
+    const [isSavingInstagram, setIsSavingInstagram] = useState(false);
+    const [instagramError, setInstagramError] = useState<string | null>(null);
 
     const handleLogout = () => {
         logout();
@@ -49,8 +49,22 @@ export default function ParticipantProfile() {
                 // Fetch QR code for the profile
                 const qrCode = await api.get<ProfileQRCode>(`/profiles/${userData.profile.id}/qr-code`);
 
+                // Fetch lodge details if user has a lodge assigned
+                let roomName = 'Sem quarto';
+                let roomKeyOwner = 'Sem proprietário';
+                if (userData.profile.lodge_id) {
+                    try {
+                        const lodgeDetail = await api.get<LodgeDetail>(`/lodges/${userData.profile.lodge_id}/detail`);
+                        roomName = lodgeDetail.name || `Quarto ${lodgeDetail.id}`;
+                        roomKeyOwner = lodgeDetail.key_owner_name || 'Sem proprietário';
+                    } catch {
+                        // Fallback if lodge fetch fails
+                        roomName = `Quarto ${userData.profile.lodge_id}`;
+                    }
+                }
+
                 // Map to display format
-                setProfile({
+                const profileData = {
                     id: String(userData.profile.id),
                     name: userData.profile.name,
                     instagram: userData.profile.instagram || '',
@@ -58,14 +72,13 @@ export default function ParticipantProfile() {
                     photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.profile.name)}&background=random`,
                     teamName: userData.profile.team_color || 'Sem Equipe',
                     teamHexColor: userData.profile.team_hex || '#fbbf24',
-                    nextTeamName: userData.next_team_color,
-                    nextTeamHexColor: userData.next_team_hex,
-                    roomName: userData.profile.lodge_id ? `Room ${userData.profile.lodge_id}` : 'Sem quarto',
-                    roomKeyOwner: 'Sem proprietário', // TODO: Get from lodge service
+                    roomName,
+                    roomKeyOwner,
                     qrCodeContent: qrCode.qr_code_url,
-                    isPaid: userData.profile.is_paid,
-                    typeSubscription: userData.profile.type_subscription
-                });
+                    isPaid: userData.profile.is_paid
+                };
+                setProfile(profileData);
+                setInstagramInput(profileData.instagram);
             } catch {
                 setError('Failed to load profile');
             } finally {
@@ -128,28 +141,79 @@ export default function ParticipantProfile() {
                                         <span className="material-symbols-outlined text-sm">location_on</span>
                                         <span>{profile?.district}</span>
                                     </div>
-                                    {profile?.typeSubscription && (
-                                        <div className="flex items-center gap-1 mt-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs">
-                                            <span className="material-symbols-outlined text-xs">confirmation_number</span>
-                                            <span>{profile.typeSubscription}</span>
-                                        </div>
-                                    )}
+
                                 </div>
                             </div>
 
-                            <div className="px-4">
-                                <label className="flex flex-col w-full">
-                                    <p className="text-sm font-medium leading-normal pb-2 text-[#637588] dark:text-gray-400">Instagram</p>
-                                    <div className="flex w-full items-stretch rounded-lg group">
-                                        <input
-                                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-l-lg text-[#111418] dark:text-white dark:bg-[#1a232e] focus:outline-0 focus:ring-0 border border-[#dce0e5] dark:border-[#2a343f] focus:border-primary h-12 p-[15px] text-base font-normal"
-                                            defaultValue={profile?.instagram || ""}
-                                        />
-                                        <div className="text-[#637588] flex border border-[#dce0e5] dark:border-[#2a343f] bg-white dark:bg-[#1a232e] items-center justify-center px-3 rounded-r-lg border-l-0">
-                                            <span className="material-symbols-outlined text-xl">edit</span>
+                            {/* Instagram Section */}
+                            <div className="mx-4">
+                                <div className="bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-xl p-[2px]">
+                                    <div className="bg-white dark:bg-[#1a232e] rounded-xl p-4">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            {/* Instagram Icon */}
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xs text-[#637588] dark:text-gray-400 font-medium uppercase tracking-wider">
+                                                    Instagram
+                                                </p>
+                                                {profile?.instagram ? (
+                                                    <p className="text-lg font-bold text-[#111418] dark:text-white">
+                                                        @{profile.instagram}
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-sm text-gray-400 italic">
+                                                        Não informado
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
+                                        
+                                        {/* Edit Instagram */}
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={instagramInput}
+                                                onChange={(e) => setInstagramInput(e.target.value)}
+                                                placeholder="Digite seu usuário"
+                                                className="flex-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#111418] dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    if (!profile) return;
+                                                    setIsSavingInstagram(true);
+                                                    setInstagramError(null);
+                                                    try {
+                                                        const updated = await api.patch<Profile>(
+                                                            `/profiles/${profile.id}/instagram?instagram=${encodeURIComponent(instagramInput)}`,
+                                                            {}
+                                                        );
+                                                        setProfile({ ...profile, instagram: updated.instagram || '' });
+                                                    } catch {
+                                                        setInstagramError('Erro ao salvar');
+                                                    } finally {
+                                                        setIsSavingInstagram(false);
+                                                    }
+                                                }}
+                                                disabled={isSavingInstagram}
+                                                className="px-4 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                            >
+                                                {isSavingInstagram ? (
+                                                    <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-sm">save</span>
+                                                )}
+                                                Salvar
+                                            </button>
+                                        </div>
+                                        {instagramError && (
+                                            <p className="text-red-500 text-xs mt-2">{instagramError}</p>
+                                        )}
                                     </div>
-                                </label>
+                                </div>
                             </div>
                             <div className="flex flex-col items-center bg-white dark:bg-background-dark p-6 rounded-xl border border-[#dce0e5] dark:border-[#2a343f] shadow-sm mx-4">
                                 <h4 className="text-[#637588] dark:text-gray-400 text-sm font-bold leading-normal tracking-[0.015em] mb-4">Check-in QR Code</h4>
@@ -168,17 +232,7 @@ export default function ParticipantProfile() {
                                 </h3>
                             </div>
 
-                            {/* Next Team Banner (Linked List) */}
-                            {profile?.nextTeamName && profile?.nextTeamHexColor && (
-                                <div
-                                    className="w-full py-3 shadow-sm opacity-80"
-                                    style={{ backgroundColor: profile.nextTeamHexColor }}
-                                >
-                                    <p className="text-center text-[#111418] text-sm font-semibold">
-                                        Próxima Equipe: {profile.nextTeamName}
-                                    </p>
-                                </div>
-                            )}
+
 
                             {/* Payment Status */}
                             <div className="mx-4">

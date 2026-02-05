@@ -32,6 +32,10 @@ export interface Profile {
   instagram: string | null;
   role_id: number;
   lodge_id: number | null;
+  type_subscription: string | null;
+  is_paid: boolean;
+  team_color: string | null;
+  team_hex: string | null;
 }
 
 export interface ProfileQRCode {
@@ -75,6 +79,8 @@ export interface UserList {
 
 export interface UserWithProfile extends User {
   profile: Profile | null;
+  next_team_color: string | null;
+  next_team_hex: string | null;
 }
 
 export interface UserPasswordChange {

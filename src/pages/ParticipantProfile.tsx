@@ -13,9 +13,13 @@ interface DisplayProfile {
   photo: string;
   teamName: string;
   teamHexColor: string;
+  nextTeamName: string | null;
+  nextTeamHexColor: string | null;
   roomName: string;
   roomKeyOwner: string;
   qrCodeContent: string;
+  isPaid: boolean;
+  typeSubscription: string | null;
 }
 
 export default function ParticipantProfile() {
@@ -52,11 +56,15 @@ export default function ParticipantProfile() {
                     instagram: userData.profile.instagram || '',
                     district: userData.profile.district,
                     photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.profile.name)}&background=random`,
-                    teamName: 'Team', // TODO: Get from role or team service
-                    teamHexColor: '#fbbf24',
+                    teamName: userData.profile.team_color || 'Sem Equipe',
+                    teamHexColor: userData.profile.team_hex || '#fbbf24',
+                    nextTeamName: userData.next_team_color,
+                    nextTeamHexColor: userData.next_team_hex,
                     roomName: userData.profile.lodge_id ? `Room ${userData.profile.lodge_id}` : 'Sem quarto',
                     roomKeyOwner: 'Sem proprietário', // TODO: Get from lodge service
-                    qrCodeContent: qrCode.qr_code_url
+                    qrCodeContent: qrCode.qr_code_url,
+                    isPaid: userData.profile.is_paid,
+                    typeSubscription: userData.profile.type_subscription
                 });
             } catch {
                 setError('Failed to load profile');
@@ -120,6 +128,12 @@ export default function ParticipantProfile() {
                                         <span className="material-symbols-outlined text-sm">location_on</span>
                                         <span>{profile?.district}</span>
                                     </div>
+                                    {profile?.typeSubscription && (
+                                        <div className="flex items-center gap-1 mt-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs">
+                                            <span className="material-symbols-outlined text-xs">confirmation_number</span>
+                                            <span>{profile.typeSubscription}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -144,8 +158,38 @@ export default function ParticipantProfile() {
                                 </div>
                                 <p className="mt-4 text-xs text-[#637588] dark:text-gray-400 font-medium">Escaneie para acessar</p>
                             </div>
-                            <div className="w-full bg-[#fbbf24]  py-4 shadow-md">
-                                <h3 className="text-center text-[#111418] text-xl font-black tracking-widest">{profile?.teamName}</h3>
+                            {/* Current Team Banner */}
+                            <div
+                                className="w-full py-4 shadow-md"
+                                style={{ backgroundColor: profile?.teamHexColor || '#fbbf24' }}
+                            >
+                                <h3 className="text-center text-[#111418] text-xl font-black tracking-widest">
+                                    Equipe {profile?.teamName}
+                                </h3>
+                            </div>
+
+                            {/* Next Team Banner (Linked List) */}
+                            {profile?.nextTeamName && profile?.nextTeamHexColor && (
+                                <div
+                                    className="w-full py-3 shadow-sm opacity-80"
+                                    style={{ backgroundColor: profile.nextTeamHexColor }}
+                                >
+                                    <p className="text-center text-[#111418] text-sm font-semibold">
+                                        Próxima Equipe: {profile.nextTeamName}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Payment Status */}
+                            <div className="mx-4">
+                                <div className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border ${profile?.isPaid ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400'}`}>
+                                    <span className="material-symbols-outlined">
+                                        {profile?.isPaid ? 'check_circle' : 'pending'}
+                                    </span>
+                                    <span className="font-semibold">
+                                        {profile?.isPaid ? 'Pagamento Confirmado' : 'Pagamento Pendente'}
+                                    </span>
+                                </div>
                             </div>
                             <div className="mx-4 mb-8">
                                 <div className="bg-white dark:bg-[#1a232e] rounded-xl border border-[#dce0e5] dark:border-[#2a343f] overflow-hidden shadow-sm">

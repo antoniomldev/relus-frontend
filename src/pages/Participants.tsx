@@ -8,7 +8,7 @@ interface ParticipantDisplay extends Profile {
 
 type ViewMode = 'grid' | 'list';
 
-type SortField = 'name' | 'age' | 'district' | 'instagram' | 'role_id';
+type SortField = 'name' | 'age' | 'district' | 'instagram' | 'role_id' | 'team_color' | 'is_paid';
 type SortOrder = 'asc' | 'desc';
 
 export default function Participants() {
@@ -195,6 +195,10 @@ export default function Participants() {
                             <option value="district-desc">Distrito (Z-A)</option>
                             <option value="role_id-asc">Role (crescente)</option>
                             <option value="role_id-desc">Role (decrescente)</option>
+                            <option value="team_color-asc">Equipe (A-Z)</option>
+                            <option value="team_color-desc">Equipe (Z-A)</option>
+                            <option value="is_paid-asc">Pagamento (Pendente-Pago)</option>
+                            <option value="is_paid-desc">Pagamento (Pago-Pendente)</option>
                         </select>
                     </div>
                 </header>
@@ -210,6 +214,13 @@ export default function Participants() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {paginatedParticipants.map((participant) => (
                                 <div key={participant.id} className="bg-white dark:bg-background-dark p-5 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
+                                    {/* Team Color Banner */}
+                                    {participant.team_color && participant.team_hex && (
+                                        <div
+                                            className="h-2 w-full rounded-t-lg -mt-5 -mx-5 mb-4"
+                                            style={{ backgroundColor: participant.team_hex, width: 'calc(100% + 40px)' }}
+                                        />
+                                    )}
                                     <div className="flex items-start gap-4 mb-4">
                                         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">
                                             {participant.name.charAt(0).toUpperCase()}
@@ -230,9 +241,28 @@ export default function Participants() {
                                                 <span className="font-medium">@{participant.instagram}</span>
                                             </div>
                                         )}
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-500">Role ID</span>
-                                            <span className="font-medium">{participant.role_id}</span>
+                                        {/* Team */}
+                                        {participant.team_color && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-500">Equipe</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div
+                                                        className="w-3 h-3 rounded-full"
+                                                        style={{ backgroundColor: participant.team_hex || '#ccc' }}
+                                                    />
+                                                    <span className="font-medium">{participant.team_color}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {/* Payment Status */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-500">Pagamento</span>
+                                            <span className={`font-medium flex items-center gap-1 ${participant.is_paid ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                                                <span className="material-symbols-outlined text-base">
+                                                    {participant.is_paid ? 'check_circle' : 'pending'}
+                                                </span>
+                                                {participant.is_paid ? 'Pago' : 'Pendente'}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -273,20 +303,20 @@ export default function Participants() {
                                                 )}
                                             </div>
                                         </th>
-                                        <th className="text-left p-4 font-semibold text-sm text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('instagram')}>
+                                        <th className="text-left p-4 font-semibold text-sm text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('team_color')}>
                                             <div className="flex items-center gap-1">
-                                                Instagram
-                                                {sortField === 'instagram' && (
+                                                Equipe
+                                                {sortField === 'team_color' && (
                                                     <span className="material-symbols-outlined text-base">
                                                         {sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}
                                                     </span>
                                                 )}
                                             </div>
                                         </th>
-                                        <th className="text-left p-4 font-semibold text-sm text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('role_id')}>
+                                        <th className="text-left p-4 font-semibold text-sm text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('is_paid')}>
                                             <div className="flex items-center gap-1">
-                                                Role
-                                                {sortField === 'role_id' && (
+                                                Pagamento
+                                                {sortField === 'is_paid' && (
                                                     <span className="material-symbols-outlined text-base">
                                                         {sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}
                                                     </span>
@@ -308,8 +338,27 @@ export default function Participants() {
                                             </td>
                                             <td className="p-4 text-gray-500">{participant.age}</td>
                                             <td className="p-4 text-gray-500">{participant.district}</td>
-                                            <td className="p-4 text-gray-500">{participant.instagram ? `@${participant.instagram}` : '-'}</td>
-                                            <td className="p-4 text-gray-500">{participant.role_id}</td>
+                                            <td className="p-4">
+                                                {participant.team_color ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div
+                                                            className="w-4 h-4 rounded-full border border-gray-200 dark:border-gray-700"
+                                                            style={{ backgroundColor: participant.team_hex || '#ccc' }}
+                                                        />
+                                                        <span className="text-gray-700 dark:text-gray-300">{participant.team_color}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400">-</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`flex items-center gap-1 font-medium ${participant.is_paid ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                                                    <span className="material-symbols-outlined text-base">
+                                                        {participant.is_paid ? 'check_circle' : 'pending'}
+                                                    </span>
+                                                    {participant.is_paid ? 'Pago' : 'Pendente'}
+                                                </span>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -6,6 +6,7 @@ import Accommodations from '../pages/Accommodations';
 import LayoutBase from '../layout/LayoutBase';
 import CheckIn from '../pages/Checkin';
 import Workshops from '../pages/Workshop';
+import Participants from '../pages/Participants';
 
 function ProtectedRoute() {
   const { isAuthenticated } = useAuth();
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
           {
             path: 'workshops',
             element: <Workshops />,
+          },
+          {
+            path: 'participantes',
+            element: <Participants />,
           },
         ],
       },

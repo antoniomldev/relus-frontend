@@ -1,6 +1,26 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import type { Profile } from '../types/types';
+import type { Profile, User } from '../types/types';
+
+interface CreateUserData {
+    email: string;
+    cellphone: string;
+    event_id: number;
+}
+
+interface CreateProfileData {
+    name: string;
+    age: number;
+    district: string;
+    instagram: string | null;
+    role_id: number;
+    lodge_id: number | null;
+    user_id: number;
+    team_color: string | null;
+    team_hex: string | null;
+    type_subscription: string | null;
+    is_paid: boolean;
+}
 
 interface ParticipantDisplay extends Profile {
     photo?: string;
@@ -22,6 +42,31 @@ export default function Participants() {
     const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        cellphone: '',
+        age: '',
+        district: '',
+        instagram: '',
+        team_color: '',
+        type_subscription: '',
+        is_paid: false,
+    });
+
+    // Team colors options
+    const teamColors = [
+        { color: 'Red', hex: '#EF4444' },
+        { color: 'Blue', hex: '#3B82F6' },
+        { color: 'Green', hex: '#10B981' },
+        { color: 'Yellow', hex: '#F59E0B' },
+        { color: 'Purple', hex: '#8B5CF6' },
+    ];
 
     const filteredParticipants = useMemo(() => {
         let filtered = [...allParticipants];
@@ -114,6 +159,85 @@ export default function Participants() {
         setOffset(0);
     };
 
+    const handleOpenModal = () => {
+        setIsModalOpen(true);
+        setFormError(null);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setFormData({
+            name: '',
+            email: '',
+            cellphone: '',
+            age: '',
+            district: '',
+            instagram: '',
+            team_color: '',
+            type_subscription: '',
+            is_paid: false,
+        });
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setFormError(null);
+
+        try {
+            // Create user first
+            const userData: CreateUserData = {
+                email: formData.email,
+                cellphone: formData.cellphone,
+                event_id: 1, // Default event
+            };
+
+            const newUser = await api.post<User, CreateUserData>('/users', userData);
+
+            // Create profile for the user
+            const selectedTeam = teamColors.find(t => t.color === formData.team_color);
+            const profileData: CreateProfileData = {
+                name: formData.name,
+                age: parseInt(formData.age) || 0,
+                district: formData.district,
+                instagram: formData.instagram || null,
+                role_id: 2, // Default user role
+                lodge_id: null,
+                user_id: newUser.id,
+                team_color: formData.team_color || null,
+                team_hex: selectedTeam?.hex || null,
+                type_subscription: formData.type_subscription || null,
+                is_paid: formData.is_paid,
+            };
+
+            await api.post('/profiles/', profileData);
+
+            // Refresh participants list
+            const profiles = await api.get<Profile[]>('/profiles', {
+                params: { offset: 0, limit: 1000 }
+            });
+            const mappedParticipants: ParticipantDisplay[] = profiles.map(profile => ({
+                ...profile,
+                photo: ''
+            }));
+            setAllParticipants(mappedParticipants);
+
+            handleCloseModal();
+        } catch (err) {
+            setFormError('Erro ao criar participante. Verifique os dados e tente novamente.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen bg-background-light dark:bg-background-dark items-center justify-center">
@@ -135,11 +259,21 @@ export default function Participants() {
             <main className="flex-1 flex flex-col">
                 <header className="p-8 pb-0">
                     <div className="flex flex-wrap items-end justify-between gap-6 mb-6">
+                    </div>
                         <div className="flex flex-col gap-2">
                             <h2 className="text-[#111418] dark:text-white text-4xl font-black tracking-tight">Participantes</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Total: {totalCount} participantes</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                        <div className="flex items-center gap-3">
+                            {/* Add Participant Button */}
+                            <button
+                                onClick={handleOpenModal}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                            >
+                                <span className="material-symbols-outlined">person_add</span>
+                                Adicionar Participante
+                            </button>
+                            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className={`p-2 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -393,6 +527,193 @@ export default function Participants() {
                     )}
                 </section>
             </main>
+
+            {/* Add Participant Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-background-dark rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                            <h3 className="text-xl font-bold">Adicionar Participante</h3>
+                            <button
+                                onClick={handleCloseModal}
+                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            {formError && (
+                                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+                                    {formError}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Nome completo *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                    placeholder="Digite o nome"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    E-mail *
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                    placeholder="email@exemplo.com"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Celular *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        name="cellphone"
+                                        value={formData.cellphone}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                        placeholder="(00) 00000-0000"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Idade *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="age"
+                                        value={formData.age}
+                                        onChange={handleInputChange}
+                                        required
+                                        min="0"
+                                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                        placeholder="18"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Distrito *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="district"
+                                    value={formData.district}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                    placeholder="Digite o distrito"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Instagram
+                                </label>
+                                <input
+                                    type="text"
+                                    name="instagram"
+                                    value={formData.instagram}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                    placeholder="@usuario"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Equipe
+                                </label>
+                                <select
+                                    name="team_color"
+                                    value={formData.team_color}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary cursor-pointer"
+                                >
+                                    <option value="">Selecione uma equipe</option>
+                                    {teamColors.map(team => (
+                                        <option key={team.color} value={team.color}>
+                                            {team.color}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Tipo de Inscrição
+                                </label>
+                                <input
+                                    type="text"
+                                    name="type_subscription"
+                                    value={formData.type_subscription}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-800 text-[#111418] dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                    placeholder="Ex: INSCRIÇÃO PARTICIPANTE: 1 parcela"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                                <input
+                                    type="checkbox"
+                                    name="is_paid"
+                                    id="is_paid"
+                                    checked={formData.is_paid}
+                                    onChange={handleInputChange}
+                                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <label htmlFor="is_paid" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    Pagamento confirmado
+                                </label>
+                            </div>
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseModal}
+                                    className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors font-medium"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="flex-1 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <span className="material-symbols-outlined animate-spin">refresh</span>
+                                            Salvando...
+                                        </>
+                                    ) : (
+                                        'Salvar'
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

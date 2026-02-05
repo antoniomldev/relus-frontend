@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import type { Profile } from '../types/types';
+import type { Profile, LectureWithOccupation, Presence } from '../types/types';
 
 export default function PublicProfile() {
     const { slug } = useParams<{ slug: string }>();
@@ -15,6 +15,13 @@ export default function PublicProfile() {
     const [checkinError, setCheckinError] = useState<string | null>(null);
     const [isTogglingPayment, setIsTogglingPayment] = useState(false);
     const [paymentError, setPaymentError] = useState<string | null>(null);
+    
+    // Workshops state
+    const [subscribedWorkshops, setSubscribedWorkshops] = useState<LectureWithOccupation[]>([]);
+    const [loadingWorkshops, setLoadingWorkshops] = useState(false);
+    const [showWorkshopModal, setShowWorkshopModal] = useState(false);
+    const [availableWorkshops, setAvailableWorkshops] = useState<LectureWithOccupation[]>([]);
+    const [addingWorkshop, setAddingWorkshop] = useState(false);
 
     useEffect(() => {
         async function fetchProfile() {
@@ -25,6 +32,10 @@ export default function PublicProfile() {
                 // Use the public endpoint that doesn't require authentication
                 const data = await api.get<Profile>(`/p/${encodeURIComponent(slug)}`);
                 setProfile(data);
+                // Fetch subscribed workshops
+                if (data) {
+                    await fetchSubscribedWorkshops(data.id);
+                }
             } catch {
                 setError('Perfil não encontrado');
             } finally {
@@ -34,6 +45,33 @@ export default function PublicProfile() {
 
         fetchProfile();
     }, [slug]);
+
+    async function fetchSubscribedWorkshops(profileId: number) {
+        try {
+            setLoadingWorkshops(true);
+            // Get all presences for this profile
+            const presences = await api.get<Presence[]>('/presences', {
+                params: { offset: 0, limit: 100 }
+            });
+            const profilePresences = presences.filter(p => p.profile_id === profileId);
+            
+            // Get lecture details for each presence
+            const workshops: LectureWithOccupation[] = [];
+            for (const presence of profilePresences) {
+                try {
+                    const lecture = await api.get<LectureWithOccupation>(`/lectures/${presence.lecture_id}`);
+                    // Calculate occupancy
+                    const detail = await api.get<{occupancy: number}>(`/lectures/${presence.lecture_id}/detail`);
+                    workshops.push({ ...lecture, occupancy: detail.occupancy });
+                } catch {
+                    // Skip if lecture not found
+                }
+            }
+            setSubscribedWorkshops(workshops);
+        } finally {
+            setLoadingWorkshops(false);
+        }
+    }
 
     const handleCheckin = async () => {
         if (!profile || !isAdmin) return;
@@ -83,6 +121,57 @@ export default function PublicProfile() {
             setPaymentError(message);
         } finally {
             setIsTogglingPayment(false);
+        }
+    };
+
+    const openWorkshopModal = async () => {
+        if (!profile || !isAdmin) return;
+        
+        try {
+            // Get all workshops
+            const allLectures = await api.get<LectureWithOccupation[]>('/lectures/with-occupation', {
+                params: { offset: 0, limit: 100 }
+            });
+            
+            // Filter to only workshops that aren't full and not already subscribed
+            const subscribedIds = subscribedWorkshops.map(w => w.id);
+            const available = allLectures.filter(l => 
+                l.is_workshop && 
+                !subscribedIds.includes(l.id) &&
+                (l.max_capacity === null || l.occupancy < l.max_capacity)
+            );
+            
+            setAvailableWorkshops(available);
+            setShowWorkshopModal(true);
+        } catch {
+            alert('Erro ao carregar workshops');
+        }
+    };
+
+    const handleSubscribeWorkshop = async (lectureId: number) => {
+        if (!profile || !isAdmin) return;
+        
+        setAddingWorkshop(true);
+        try {
+            await api.post(`/lectures/${lectureId}/participants/${profile.id}`, {});
+            await fetchSubscribedWorkshops(profile.id);
+            setShowWorkshopModal(false);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Erro ao inscrever');
+        } finally {
+            setAddingWorkshop(false);
+        }
+    };
+
+    const handleUnsubscribeWorkshop = async (lectureId: number) => {
+        if (!profile || !isAdmin) return;
+        if (!confirm('Remover inscrição deste workshop?')) return;
+        
+        try {
+            await api.delete(`/lectures/${lectureId}/participants/${profile.id}`);
+            await fetchSubscribedWorkshops(profile.id);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Erro ao remover inscrição');
         }
     };
 
@@ -288,6 +377,62 @@ export default function PublicProfile() {
                             </p>
                         </div>
 
+                        {/* Subscribed Workshops */}
+                        <div className="mx-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="text-[#111418] dark:text-white font-bold text-lg">
+                                    Workshops ({subscribedWorkshops.length}/2)
+                                </h4>
+                                {isAdmin && subscribedWorkshops.length < 2 && (
+                                    <button
+                                        onClick={openWorkshopModal}
+                                        className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">add</span>
+                                        Adicionar
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {loadingWorkshops ? (
+                                <div className="text-center py-4 text-[#637588] dark:text-gray-400">
+                                    Carregando workshops...
+                                </div>
+                            ) : subscribedWorkshops.length === 0 ? (
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center text-[#637588] dark:text-gray-400">
+                                    Nenhum workshop inscrito
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {subscribedWorkshops.map((workshop) => (
+                                        <div 
+                                            key={workshop.id}
+                                            className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-4"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-bold text-purple-900 dark:text-purple-300">
+                                                        {workshop.name}
+                                                    </p>
+                                                    <p className="text-sm text-purple-700 dark:text-purple-400">
+                                                        {new Date(workshop.start_date).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                                {isAdmin && (
+                                                    <button
+                                                        onClick={() => handleUnsubscribeWorkshop(workshop.id)}
+                                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                    >
+                                                        <span className="material-symbols-outlined">delete</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Current Team Banner */}
                         {profile.team_color && profile.team_hex && (
                             <div
@@ -304,6 +449,56 @@ export default function PublicProfile() {
                     </div>
                 </main>
             </div>
+
+            {/* Add Workshop Modal */}
+            {showWorkshopModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-[#1a232e] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-xl">
+                        <div className="p-6 border-b border-[#dce0e5] dark:border-[#2a343f]">
+                            <h3 className="text-xl font-bold">Adicionar Workshop</h3>
+                            <p className="text-sm text-[#637588] dark:text-gray-400 mt-1">
+                                Escolha um workshop para inscrever o participante
+                            </p>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {availableWorkshops.length === 0 ? (
+                                <div className="text-center py-8 text-[#637588] dark:text-gray-400">
+                                    Nenhum workshop disponível
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {availableWorkshops.map((workshop) => (
+                                        <button
+                                            key={workshop.id}
+                                            onClick={() => handleSubscribeWorkshop(workshop.id)}
+                                            disabled={addingWorkshop}
+                                            className="w-full text-left p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
+                                        >
+                                            <p className="font-bold text-purple-900 dark:text-purple-300">
+                                                {workshop.name}
+                                            </p>
+                                            <p className="text-sm text-purple-700 dark:text-purple-400">
+                                                Vagas: {workshop.occupancy} / {workshop.max_capacity ?? '∞'}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-6 border-t border-[#dce0e5] dark:border-[#2a343f]">
+                            <button
+                                onClick={() => setShowWorkshopModal(false)}
+                                disabled={addingWorkshop}
+                                className="w-full py-3 rounded-xl font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

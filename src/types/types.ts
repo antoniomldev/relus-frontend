@@ -134,6 +134,24 @@ export interface Lecture {
   is_workshop: boolean;
   speaker_id: number;
   event_id: number;
+  max_capacity: number | null;
+}
+
+export interface LectureWithOccupation extends Lecture {
+  occupancy: number;
+  speaker_name?: string;
+}
+
+export interface LectureDetail extends LectureWithOccupation {
+  participants: Profile[];
+}
+
+export interface Presence {
+  id: number;
+  profile_id: number;
+  lecture_id: number;
+  register_id: number;
+  date: string;
 }
 
 export interface Workshop {

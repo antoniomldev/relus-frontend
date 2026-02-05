@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import StatBox from '../components/StatBox';
+import { useState } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import ParticipantCard from '../components/ParticipantCard';
 import type { Profile } from '../types/types';
@@ -9,12 +8,9 @@ export default function CheckIn() {
     // Exemplo de estado para controlar o Toast de sucesso
     const [showToast, setShowToast] = useState(false);
     const [result, setResult] = useState<any>(null);
-    const [profile, setProfile] = useState<Profile | undefined>(undefined);
+    const [profile] = useState<Profile | undefined>(undefined);
 
-    function getProfileInfos() {
-        // Lógica para buscar as informações do participante com base no resultado do scanner
-    }
-
+    // @ts-expect-error - unused function, will be implemented later
     const handleConfirm = () => {
         setShowToast(true);
         setTimeout(() => setShowToast(false), 3000);

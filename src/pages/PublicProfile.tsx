@@ -2,13 +2,19 @@ import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import type { Profile } from '../types/types';
 
 export default function PublicProfile() {
     const { slug } = useParams<{ slug: string }>();
+    const { isAdmin } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isCheckingIn, setIsCheckingIn] = useState(false);
+    const [checkinError, setCheckinError] = useState<string | null>(null);
+    const [isTogglingPayment, setIsTogglingPayment] = useState(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchProfile() {
@@ -28,6 +34,57 @@ export default function PublicProfile() {
 
         fetchProfile();
     }, [slug]);
+
+    const handleCheckin = async () => {
+        if (!profile || !isAdmin) return;
+
+        setIsCheckingIn(true);
+        setCheckinError(null);
+
+        try {
+            const updated = await api.post<Profile>(`/profiles/${profile.id}/checkin`, {});
+            setProfile(updated);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erro ao fazer check-in';
+            setCheckinError(message);
+        } finally {
+            setIsCheckingIn(false);
+        }
+    };
+
+    const handleCheckout = async () => {
+        if (!profile || !isAdmin) return;
+
+        setIsCheckingIn(true);
+        setCheckinError(null);
+
+        try {
+            const updated = await api.post<Profile>(`/profiles/${profile.id}/checkout`, {});
+            setProfile(updated);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erro ao desfazer check-in';
+            setCheckinError(message);
+        } finally {
+            setIsCheckingIn(false);
+        }
+    };
+
+    const handleTogglePayment = async () => {
+        if (!profile || !isAdmin) return;
+
+        setIsTogglingPayment(true);
+        setPaymentError(null);
+
+        try {
+            const updated = await api.post<Profile>(`/profiles/${profile.id}/toggle-payment`, {});
+            setProfile(updated);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Erro ao alterar status de pagamento';
+            setPaymentError(message);
+        } finally {
+            setIsTogglingPayment(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -86,8 +143,106 @@ export default function PublicProfile() {
                             </div>
                         </div>
 
+                        {/* Check-in Status - Admin only */}
+                        {isAdmin && (
+                            <>
+                                <div className="mx-4">
+                                    <div className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl border ${
+                                        profile.checked_in
+                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400'
+                                            : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                        <span className="material-symbols-outlined text-2xl">
+                                            {profile.checked_in ? 'check_circle' : 'radio_button_unchecked'}
+                                        </span>
+                                        <div>
+                                            <p className="font-bold text-lg">
+                                                {profile.checked_in ? 'Check-in Realizado' : 'Aguardando Check-in'}
+                                            </p>
+                                            <p className="text-xs opacity-70 mt-0.5">
+                                                {profile.checked_in ? 'Participante confirmado' : 'Clique abaixo para confirmar'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mx-4">
+                                    {checkinError && (
+                                        <p className="text-red-500 text-xs text-center mb-2">{checkinError}</p>
+                                    )}
+                                    <button
+                                        onClick={profile.checked_in ? handleCheckout : handleCheckin}
+                                        disabled={isCheckingIn}
+                                        className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
+                                            profile.checked_in
+                                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                                : 'bg-green-500 text-white hover:bg-green-600'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                        {isCheckingIn ? (
+                                            <span className="material-symbols-outlined animate-spin">refresh</span>
+                                        ) : (
+                                            <span className="material-symbols-outlined">
+                                                {profile.checked_in ? 'undo' : 'check_circle'}
+                                            </span>
+                                        )}
+                                        {profile.checked_in ? 'Desfazer Check-in' : 'Confirmar Check-in'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Payment Status - Admin only */}
+                        {isAdmin && (
+                            <>
+                                <div className="mx-4">
+                                    <div className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl border ${
+                                        profile.is_paid
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400'
+                                            : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400'
+                                    }`}>
+                                        <span className="material-symbols-outlined text-2xl">
+                                            {profile.is_paid ? 'payments' : 'pending_payments'}
+                                        </span>
+                                        <div>
+                                            <p className="font-bold text-lg">
+                                                {profile.is_paid ? 'Pagamento Confirmado' : 'Pagamento Pendente'}
+                                            </p>
+                                            <p className="text-xs opacity-70 mt-0.5">
+                                                {profile.is_paid ? 'Inscrição quitada' : 'Aguardando confirmação'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mx-4">
+                                    {paymentError && (
+                                        <p className="text-red-500 text-xs text-center mb-2">{paymentError}</p>
+                                    )}
+                                    <button
+                                        onClick={handleTogglePayment}
+                                        disabled={isTogglingPayment}
+                                        className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
+                                            profile.is_paid
+                                                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50'
+                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                        {isTogglingPayment ? (
+                                            <span className="material-symbols-outlined animate-spin">refresh</span>
+                                        ) : (
+                                            <span className="material-symbols-outlined">
+                                                {profile.is_paid ? 'money_off' : 'paid'}
+                                            </span>
+                                        )}
+                                        {profile.is_paid ? 'Marcar como Não Pago' : 'Confirmar Pagamento'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
                         {/* Instagram Display */}
-                        {profile.instagram && (
+                        {profile.instagram && profile.instagram.trim() !== '' && (
                             <div className="mx-4">
                                 <a 
                                     href={`https://instagram.com/${profile.instagram}`}

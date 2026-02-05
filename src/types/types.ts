@@ -61,6 +61,7 @@ export interface Profile {
   is_paid: boolean;
   team_color: string | null;
   team_hex: string | null;
+  checked_in: boolean;
 }
 
 export interface ProfileQRCode {

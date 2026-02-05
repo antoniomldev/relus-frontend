@@ -28,9 +28,10 @@ export default function ParticipantCard({ participant, onHandleConfirm }: Partic
                     </div>
                 </div>
                 <div
-                    className="hidden sm:block w-48 bg-center bg-no-repeat aspect-square bg-cover rounded-xl shadow-inner border border-[#f0f2f4] dark:border-slate-800"
-                    style={{ backgroundImage: `url("${participant?.photo}")` }}
-                ></div>
+                    className="hidden sm:flex w-48 aspect-square rounded-xl shadow-inner border border-[#f0f2f4] dark:border-slate-800 items-center justify-center bg-gray-100 dark:bg-slate-800"
+                >
+                    <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-slate-600">person</span>
+                </div>
             </div>
         </div>
     )

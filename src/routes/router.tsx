@@ -8,14 +8,19 @@ import CheckIn from '../pages/Checkin';
 import Workshops from '../pages/Workshop';
 import Participants from '../pages/Participants';
 
-function ProtectedRoute() {
+function PublicRoute() {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <Navigate to="/perfil" replace /> : <Outlet />;
+}
+
+function UserRoute() {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
-function PublicRoute() {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard/workshops" replace /> : <Outlet />;
+function AdminRoute() {
+  const { isAdmin } = useAuth();
+  return isAdmin ? <Outlet /> : <Navigate to="/perfil" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -29,31 +34,36 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedRoute />,
+    element: <UserRoute />,
     children: [
       {
         path: '/perfil',
         element: <ParticipantProfile />,
       },
       {
-        path: '/dashboard',
-        element: <LayoutBase />,
+        element: <AdminRoute />,
         children: [
           {
-            path: 'acomodacoes',
-            element: <Accommodations />,
-          },
-          {
-            path: 'checkin',
-            element: <CheckIn />,
-          },
-          {
-            path: 'workshops',
-            element: <Workshops />,
-          },
-          {
-            path: 'participantes',
-            element: <Participants />,
+            path: '/dashboard',
+            element: <LayoutBase />,
+            children: [
+              {
+                path: 'acomodacoes',
+                element: <Accommodations />,
+              },
+              {
+                path: 'checkin',
+                element: <CheckIn />,
+              },
+              {
+                path: 'workshops',
+                element: <Workshops />,
+              },
+              {
+                path: 'participantes',
+                element: <Participants />,
+              },
+            ],
           },
         ],
       },

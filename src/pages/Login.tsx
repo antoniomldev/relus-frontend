@@ -20,9 +20,9 @@ export default function LoginPage() {
     try {
       const loginData: Login = { email, password };
       const token: Token = await api.post('/auth/token', loginData);
-      login(token);
-      navigate('/dashboard/workshops');
-    } catch (err) {
+      await login(token);
+      navigate('/perfil');
+    } catch {
       setError('Email ou senha incorretos');
     } finally {
       setLoading(false);

@@ -1,7 +1,9 @@
 import { QRCodeCanvas } from "qrcode.react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "../contexts/AuthContext";
 import { api } from "../services/api";
-import type { Profile, ProfileQRCode, UserWithProfile } from "../types/types";
+import type { ProfileQRCode, UserWithProfile } from "../types/types";
 
 interface DisplayProfile {
   id: string;
@@ -17,9 +19,16 @@ interface DisplayProfile {
 }
 
 export default function ParticipantProfile() {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
     const [profile, setProfile] = useState<DisplayProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     useEffect(() => {
         async function fetchProfile() {
@@ -87,6 +96,13 @@ export default function ParticipantProfile() {
                             </div>
                             <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">Meu Perfil</h2>
                         </div>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                        >
+                            <span className="material-symbols-outlined">logout</span>
+                            <span className="text-sm font-semibold">Sair</span>
+                        </button>
                     </header>
 
                     <main className="flex flex-1 justify-center py-8 px-4">

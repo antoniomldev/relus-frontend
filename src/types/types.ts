@@ -62,6 +62,7 @@ export interface Profile {
   team_color: string | null;
   team_hex: string | null;
   checked_in: boolean;
+  cellphone?: string | null;
 }
 
 export interface ProfileQRCode {

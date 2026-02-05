@@ -371,6 +371,12 @@ export default function Participants() {
                                             <span className="text-gray-500">Distrito</span>
                                             <span className="font-medium">{participant.district}</span>
                                         </div>
+                                        {participant.cellphone && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-500">Celular</span>
+                                                <span className="font-medium">{participant.cellphone}</span>
+                                            </div>
+                                        )}
                                         {participant.instagram && (
                                             <div className="flex justify-between">
                                                 <span className="text-gray-500">Instagram</span>
@@ -439,6 +445,9 @@ export default function Participants() {
                                                 )}
                                             </div>
                                         </th>
+                                        <th className="text-left p-4 font-semibold text-sm text-gray-500">
+                                            Celular
+                                        </th>
                                         <th className="text-left p-4 font-semibold text-sm text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('team_color')}>
                                             <div className="flex items-center gap-1">
                                                 Equipe
@@ -474,6 +483,7 @@ export default function Participants() {
                                             </td>
                                             <td className="p-4 text-gray-500">{participant.age}</td>
                                             <td className="p-4 text-gray-500">{participant.district}</td>
+                                            <td className="p-4 text-gray-500">{participant.cellphone || '-'}</td>
                                             <td className="p-4">
                                                 {participant.team_color ? (
                                                     <div className="flex items-center gap-2">

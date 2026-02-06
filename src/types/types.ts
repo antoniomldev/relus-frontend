@@ -67,8 +67,8 @@ export interface Profile {
 
 export interface ProfileQRCode {
   profile_id: number;
-  qr_code_url: string;
-  qr_code_image_base64: string | null;
+  qr_code_url: string;  // URL to encode in QR code (frontend generates image)
+  slug: string;
 }
 
 export interface ProfileSearch {

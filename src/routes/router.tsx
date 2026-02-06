@@ -8,6 +8,7 @@ import LayoutBase from '../layout/LayoutBase';
 import CheckIn from '../pages/Checkin';
 import Workshops from '../pages/Workshop';
 import Participants from '../pages/Participants';
+import Dashboard from '../pages/Dashboard';
 
 function PublicRoute() {
   const { isAuthenticated } = useAuth();
@@ -52,6 +53,10 @@ export const router = createBrowserRouter([
             path: '/dashboard',
             element: <LayoutBase />,
             children: [
+              {
+                index: true,
+                element: <Dashboard />,
+              },
               {
                 path: 'acomodacoes',
                 element: <Accommodations />,
